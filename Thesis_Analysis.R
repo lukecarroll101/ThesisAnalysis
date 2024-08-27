@@ -77,6 +77,16 @@ desc$tab <- round(data.frame(mean = desc$mean, sd = desc$sd, cronbachs_alpha = d
 desc$tab
 write.csv(desc$tab, file = "description_table.csv")
 
+
+cor_var <- unique(c(side_var, top_var))
+desc_matrix <- list()
+desc_matrix$cor <- cor(fccases[,cor_var], method = "pearson", use = "pair")
+desc_matrix$tab <- round(data.frame(desc_matrix$cor), 2)
+desc_matrix$tab <- desc_matrix$tab[c(side_var, top_var), top_var]
+print(desc_matrix$tab[1:13,])
+write.csv(desc$tab, file = "description_martix.csv")
+
+
 table(complete.cases(fccases[,cor_var][1:19]))
 # fccases <- fccases[complete.cases(fccases[,cor_var][1:19]),cor_var]
 # as.matrix(colSums(!is.na(temp)))

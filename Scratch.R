@@ -1,3 +1,20 @@
+
+
+# Define the variables for the correlation matrix
+top_var <- c("swl", "pa", "na", "autonomy", "emastery", "pgrowth", "prelwo", "plife", "selfaccept")
+side_var <- c("intelligence", "verbal", "abstract", "numeric", "honestyhumility", "emotionality", 
+              "extraversion", "agreeableness", "conscientiousness", "openness", "gender", 
+              "income_estimate", "education_numeric")
+
+# Combine the variables into one list
+cor_var <- unique(c(side_var, top_var))
+desc <- list()
+desc$cor <- cor(fccases[,cor_var], method = "pearson", use = "pair")
+desc$tab <- round(data.frame(desc$cor), 2)
+desc$tab <- desc$tab[c(side_var, top_var), top_var]
+print(desc$tab[1:13,])
+
+
 fits_lm_test <- list()
 for (scale_test in c(cor_var[5:13])) {
   formula <- as.formula(paste(scale_test, "~ verbal + abstract + numeric"))
