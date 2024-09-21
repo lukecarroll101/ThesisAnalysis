@@ -19,7 +19,8 @@ v$panasItems_pa <- meta_panas$id[meta_panas$subscale == "pa"]
 v$panasItems_na <- meta_panas$id[meta_panas$subscale == "na"]
 v$pwb_items <- meta_pwb$id
 v$wellbeing_items <- c(v$swl_items, v$panasItems_pa, v$panasItems_na, v$pwb_items)
-v$intelligence <- c("intelligence","verbal" ,"abstract" ,"numeric") # intelligence data starts back as far as 2011.
+v$intelligence <- c("intelligence","verbal" ,"abstract" ,"numeric")
+v$intelligence_date <- c("verbal_date" ,"abstract_date" ,"numeric_date")
 
 scored <- list()
 scored$swl <- score_test(meta_swl, wccases, subscale_name = "subscale")
@@ -32,7 +33,9 @@ scores <- lapply(scored, function(X) X$scores)
 names(scores) <- NULL
 fccases <- data.frame(do.call(cbind, scores))
 fccases[,v$intelligence] <- wccases[,v$intelligence]
+fccases[,v$intelligence_date] <- wccases[,v$intelligence_date]
 fccases[,v$demographic_items] <- wccases[,v$demographic_items]
+fccases$wellbeing_year <- format(as.Date(as.POSIXct(wccases$startdate, format="%d/%m/%Y %H:%M")), "%Y")
 fccases$gender <- dplyr::recode(fccases$gender, "Male" = 1, "Female" = 0)
 fccases$income_estimate <- as.numeric(as.character(factor(fccases$income, c("Negative or Zero Income", 
                                                                           "$1 ‐ $9,999 per year ($1 ‐ $189 per week)", 
@@ -62,6 +65,8 @@ as.matrix(colSums(!is.na(fccases)))
 
 # Filter data frame to only include participants with intelligence data
 fccases <- fccases[apply(fccases[, v$intelligence], 1, function(x) any(!is.na(x))), ]
+as.matrix(colSums(!is.na(fccases)))
+
 
 # Demographic information
 table(fccases$gender) # Male = 1, Female = 0
@@ -77,14 +82,16 @@ desc$tab <- round(data.frame(mean = desc$mean, sd = desc$sd, cronbachs_alpha = d
 desc$tab
 write.csv(desc$tab, file = "description_table.csv")
 
-
-cor_var <- unique(c(side_var, top_var))
+top_var <- c("swl", "pa", "na", "autonomy", "emastery", "pgrowth", "prelwo", "plife", "selfaccept")
+side_var <- c("intelligence", "verbal", "abstract", "numeric", "honestyhumility", "emotionality", 
+              "extraversion", "agreeableness", "conscientiousness", "openness", "gender", 
+              "income_estimate", "education_numeric")
 desc_matrix <- list()
 desc_matrix$cor <- cor(fccases[,cor_var], method = "pearson", use = "pair")
 desc_matrix$tab <- round(data.frame(desc_matrix$cor), 2)
 desc_matrix$tab <- desc_matrix$tab[c(side_var, top_var), top_var]
 print(desc_matrix$tab[1:13,])
-write.csv(desc$tab, file = "description_martix.csv")
+write.csv(desc_matrix$tab[1:13,], file = "description_martix.csv")
 
 
 table(complete.cases(fccases[,cor_var][1:19]))
@@ -123,6 +130,28 @@ for (scalee_abs in c(cor_var[1:9])) {
   print(scalee_abs)
   print(summary)}
 summary_df_abs
+
+fits_lm_ALL <- list()
+for (scale_ALL in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale_ALL, "~ intelligence + verbal + abstract + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm_ALL[[scale_ALL]] <- model}
+summary_df_ALL <- data.frame(Predictors = c("Intelligence", "Verbal", "Abstract Reasoning", "Honesty Humility", 
+                                            "Emotionality", "Extraversion", "Agreeableness", 
+                                            "Conscientiousness", "Openness","Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee_ALL in c(cor_var[1:9])) {
+  model <- fits_lm_ALL[[scalee_ALL]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df_ALL[[scalee_ALL]] <- round(c(summary$coefficients[,2][2:13],summary$adj.r.squared),3)
+  print(scalee_ALL)
+  print(summary)}
+summary_df_ALL
+
+summary(fits_lm$pa)
+summary(fits_lm_abs$pa)
+summary(fits_lm_ALL$pa)
+
 write.csv(summary_df, file = "regression_table.csv")
 write.csv(summary_df_abs, file = "regression_abs_table.csv")
+write.csv(summary_df_ALL, file = "regression_ALL_table.csv")
 # write_xlsx(list(summary_df = summary_df, summary_df_abs = summary_df_abs), path = "regression_tables.xlsx")

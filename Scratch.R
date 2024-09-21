@@ -1,4 +1,22 @@
+test <- fccases[,c("wellbeing_year",v$intelligence_date)]
+typeof(test$verbal_date)
+as.Date(test$verbal_date)
 
+test$date_column <- as.Date(test$verbal_date)
+test$year <- format(test$date_column, "%Y")
+table(test$year)
+table(test$wellbeing_year)
+test$diff <- as.numeric(test$wellbeing_year) - as.numeric(test$year)
+table(test$diff)
+
+test$prelwo <- fccases$prelwo
+
+cor(test$diff, test$prelwo, method = "pearson" ,use = "pair")
+
+
+
+
+wccases$verbal_date
 
 # Define the variables for the correlation matrix
 top_var <- c("swl", "pa", "na", "autonomy", "emastery", "pgrowth", "prelwo", "plife", "selfaccept")
