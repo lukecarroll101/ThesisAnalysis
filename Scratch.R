@@ -1,3 +1,125 @@
+# Distribution histograms
+# Set the layout to a 3x6 matrix (or adjust rows/columns as needed)
+par(mfrow = c(3, 6))  # Adjust the number of rows and columns to fit the number of variables
+
+# Loop through the variables and create histograms
+for (i in c(names(fccases[1:9]), names(fccases[16:19]), names(fccases[10:15]))) {
+  # Plot the histogram
+  hist(fccases[[i]], 
+       main = paste("Histogram of", i), 
+       xlab = i)
+}
+
+# Reset the plotting layout to default
+par(mfrow = c(1, 1))
+
+
+
+# Intelligence 
+fits_lm <- list()
+for (scale in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale, "~ intelligence + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm[[scale]] <- model}
+summary_df <- data.frame(Predictors = c("Intelligence", "Honesty Humility", 
+                                        "Emotionality", "Extraversion", "Agreeableness", 
+                                        "Conscientiousness", "Openness","Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee in c(cor_var[1:9])) {
+  model <- fits_lm[[scalee]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df[[scalee]] <- round(c(summary$coefficients[,2][2:11],summary$adj.r.squared),3)
+  print(scalee)
+  print(summary)}
+summary_df
+
+# With All
+fits_lm_ALL <- list()
+for (scale_ALL in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale_ALL, "~ verbal + abstract + numeric + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm_ALL[[scale_ALL]] <- model
+  }
+
+summary_df_ALL <- data.frame(Predictors = c("Verbal", "Abstract Reasoning", "Numeric", "Honesty Humility", 
+                                            "Emotionality", "Extraversion", "Agreeableness", 
+                                            "Conscientiousness", "Openness","Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee_ALL in c(cor_var[1:9])) {
+  model <- fits_lm_ALL[[scalee_ALL]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df_ALL[[scalee_ALL]] <- round(c(summary$coefficients[,2][2:13],summary$adj.r.squared),3)
+  print(scalee_ALL)
+  print(summary)
+  }
+summary_df_ALL
+
+
+# Intelligence without Personality
+fits_lm_IntOnly <- list()
+for (scale_ALL in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale_ALL, "~ intelligence + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm_IntOnly [[scale_ALL]] <- model}
+
+summary_df_IntOnly <- data.frame(Predictors = c("Intelligence", "Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee_ALL in c(cor_var[1:9])) {
+  model <- fits_lm_IntOnly [[scalee_ALL]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df_IntOnly[[scalee_ALL]] <- round(c(summary$coefficients[,2][2:5],summary$adj.r.squared),3)
+  print(scalee_ALL)
+  print(summary)}
+summary_df_IntOnly
+
+# All without Personality
+fits_lm_ALL <- list()
+for (scale_ALL in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale_ALL, "~ numeric + verbal + abstract + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm_ALL[[scale_ALL]] <- model}
+
+summary_df_ALL <- data.frame(Predictors = c("Numeric", "Verbal", "Abstract Reasoning", "Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee_ALL in c(cor_var[1:9])) {
+  model <- fits_lm_ALL[[scalee_ALL]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df_ALL[[scalee_ALL]] <- round(c(summary$coefficients[,2][2:7],summary$adj.r.squared),3)
+  print(scalee_ALL)
+  print(summary)}
+summary_df_ALL
+
+plot(fccases$income_estimate, fccases$selfaccept)
+abline(h = 0, col = "red") 
+
+# Get residuals from the GLM model
+glm_residuals <- residuals(fits_lm_ALL$prelwo, type = "deviance")
+
+# Plot residuals against fitted values
+plot(fitted(fits_lm_ALL$prelwo), glm_residuals, 
+     main = "Residuals vs Fitted Values",
+     xlab = "Fitted values", ylab = "Deviance Residuals")
+abline(h = 0, col = "red")  # Add a reference line at y=0
+
+# Q-Q plot for GLM residuals
+qqnorm(glm_residuals)
+qqline(glm_residuals, col = "red")  # Adds a reference line
+
+# Histogram of residuals
+hist(glm_residuals, breaks = 20, col = "lightblue", main = "Histogram of Deviance Residuals", xlab = "Residuals")
+
+# Check AIC of the GLM
+AIC(fits_lm_ALL$prelwo)
+
+# Check deviance
+summary(fits_lm_ALL$prelwo)$deviance  # Residual deviance
+summary(fits_lm_ALL$prelwo)$null.deviance  # Null deviance
+
+# Plot residuals vs fitted values
+
+hist(fccases$emastery)
+hist(resid(fits_lm_ALL$emastery))
+plot(fitted(fits_lm_ALL$prelwo), resid(fits_lm_ALL$prelwo), main = "Residuals vs Fitted", xlab = "Fitted values", ylab = "Residuals")
+abline(h = 0, col = "red")
+
+
+
 test <- fccases[,c("wellbeing_year",v$intelligence_date)]
 typeof(test$verbal_date)
 as.Date(test$verbal_date)
@@ -55,7 +177,7 @@ x$coefficients
 
 cor_var
 cor(fccases$swl, fccases$autonomy, method = "pearson", use = "pair")
-cor.test(fccases$swl, fccases$autonomy, method = "pearson", use = "pair")
+cor.test(fccases$swl, fccases$pa, method = "spearman", use = "pair")
 
 play <- c("intelligence","verbal","abstract","numeric","swl","pa","na","autonomy","emastery",
           "pgrowth","prelwo","plife","selfaccept")

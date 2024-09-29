@@ -15,7 +15,7 @@ emmett_cor_matrix_function <- function(x, data, table = FALSE){
       na_list <- c(rep(paste(""), (start_variable - 1)))
       variable_x <- data[,x[i]]
       print(paste(var_y_name, x[i]))
-      cor <- cor.test(variable_x, variable_y, method = "pearson", use = "pair")
+      cor <- cor.test(variable_x, variable_y, method = "spearman", use = "pair")
       p_value <- as.numeric(cor$p.value)
       
       

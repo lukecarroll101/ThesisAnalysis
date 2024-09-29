@@ -63,16 +63,40 @@ missing_count <- apply(fccases[,c(v$intelligence, "swl", names(scored$panas$scor
 table(missing_count)
 as.matrix(colSums(!is.na(fccases)))
 
-# Filter data frame to only include participants with intelligence data
+# Filter data frame to only include participants with at least on intelligence data point
 fccases <- fccases[apply(fccases[, v$intelligence], 1, function(x) any(!is.na(x))), ]
 as.matrix(colSums(!is.na(fccases)))
 
 
 # Demographic information
 table(fccases$gender) # Male = 1, Female = 0
+table(fccases$age_estimate)
 psych::describe(fccases)
 
-desc <- list() # potentially include income and maybe education
+
+## Checking for Normality in the data
+for (i in c(names(fccases[1:9]),names(fccases[16:19]),names(fccases[10:15]))){
+  print(i)
+  print(shapiro.test(fccases[[i]]))
+  hist(fccases[[i]],
+       main = i)
+  qqnorm(fccases[[i]])
+}
+
+## Create matrix with all distribution histograms for appendix
+par(mfrow = c(3, 6)) 
+for (i in c(names(fccases[1:9]), names(fccases[16:19]), names(fccases[10:15]))) {
+  # Plot the histogram
+  hist(fccases[[i]], 
+       main = paste("Histogram of", i), 
+       xlab = i)
+}
+par(mfrow = c(1, 1))
+
+# Statistical Analysis----------------------------------------------------------------------------------------------------
+
+# Computing correlations and creating tables/matrices
+desc <- list() 
 cor_var <- c(names(fccases[1:9]),names(fccases[16:19]),names(fccases[10:15]),"gender","income_estimate","education_numeric")
 desc$cor <- cor(fccases[,cor_var],method = "pearson", use = "pair")
 desc$mean <- sapply(na.omit(fccases[,cor_var]), mean)
@@ -82,6 +106,7 @@ desc$tab <- round(data.frame(mean = desc$mean, sd = desc$sd, cronbachs_alpha = d
 desc$tab
 write.csv(desc$tab, file = "description_table.csv")
 
+## Creating a condense version of the correlation table to inlcude in the write up
 top_var <- c("swl", "pa", "na", "autonomy", "emastery", "pgrowth", "prelwo", "plife", "selfaccept")
 side_var <- c("intelligence", "verbal", "abstract", "numeric", "honestyhumility", "emotionality", 
               "extraversion", "agreeableness", "conscientiousness", "openness", "gender", 
@@ -94,11 +119,23 @@ print(desc_matrix$tab[1:13,])
 write.csv(desc_matrix$tab[1:13,], file = "description_martix.csv")
 
 
-table(complete.cases(fccases[,cor_var][1:19]))
-# fccases <- fccases[complete.cases(fccases[,cor_var][1:19]),cor_var]
-# as.matrix(colSums(!is.na(temp)))
+# Compute Regression model
+## Intelligence without Personality
+fits_lm_IntOnly <- list()
+for (scale_ALL in c(cor_var[1:9])) {
+  formula <- as.formula(paste(scale_ALL, "~ intelligence + gender + income_estimate + education_numeric"))
+  model <- lm(formula, data = fccases)
+  fits_lm_IntOnly [[scale_ALL]] <- model}
 
-#Compute Regression model
+summary_df_IntOnly <- data.frame(Predictors = c("Intelligence", "Gender", "Income", "Education", "Adjusted R^2"))
+for (scalee_ALL in c(cor_var[1:9])) {
+  model <- fits_lm_IntOnly [[scalee_ALL]]
+  summary <- summary(lm.beta::lm.beta(model))
+  summary_df_IntOnly[[scalee_ALL]] <- round(c(summary$coefficients[,2][2:5],summary$adj.r.squared),3)
+  print(scalee_ALL)
+  print(summary)}
+summary_df_IntOnly
+
 fits_lm <- list()
 for (scale in c(cor_var[1:9])) {
   formula <- as.formula(paste(scale, "~ intelligence + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
@@ -133,10 +170,10 @@ summary_df_abs
 
 fits_lm_ALL <- list()
 for (scale_ALL in c(cor_var[1:9])) {
-  formula <- as.formula(paste(scale_ALL, "~ intelligence + verbal + abstract + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
+  formula <- as.formula(paste(scale_ALL, "~ numeric + verbal +  abstract + honestyhumility + emotionality + extraversion + agreeableness + conscientiousness + openness + gender + income_estimate + education_numeric"))
   model <- lm(formula, data = fccases)
   fits_lm_ALL[[scale_ALL]] <- model}
-summary_df_ALL <- data.frame(Predictors = c("Intelligence", "Verbal", "Abstract Reasoning", "Honesty Humility", 
+summary_df_ALL <- data.frame(Predictors = c("Numeric", "Verbal", "Abstract Reasoning", "Honesty Humility", 
                                             "Emotionality", "Extraversion", "Agreeableness", 
                                             "Conscientiousness", "Openness","Gender", "Income", "Education", "Adjusted R^2"))
 for (scalee_ALL in c(cor_var[1:9])) {
@@ -147,11 +184,15 @@ for (scalee_ALL in c(cor_var[1:9])) {
   print(summary)}
 summary_df_ALL
 
-summary(fits_lm$pa)
-summary(fits_lm_abs$pa)
-summary(fits_lm_ALL$pa)
+## Checking for Normality in the residuals to test if this is an appropriate analysis
+for (j in names(fccases[1:9])){
+  print(j)
+  hist(resid(fits_lm_ALL[[j]]),
+       main = j)
+}
 
+write.csv(summary_df_IntOnly, file = "regression_table_IntOnly.csv")
 write.csv(summary_df, file = "regression_table.csv")
 write.csv(summary_df_abs, file = "regression_abs_table.csv")
-write.csv(summary_df_ALL, file = "regression_ALL_table.csv")
+write.csv(summary_df_ALL, file = "regression_ALL_table.csv", row.names = FALSE)
 # write_xlsx(list(summary_df = summary_df, summary_df_abs = summary_df_abs), path = "regression_tables.xlsx")
